@@ -50,8 +50,8 @@ cv::Rect getSamplingRectangle(const cv::Size& img_size);
 /// \brief Extract training samples from a rectangle within an image.
 /// \param[in] source_image
 /// \param[in] sampling_rectangle
-/// \return A [m x n]-sized row-vector of samples, where [m x n] is the number of pixels within the sampling rectangle
-/// and each sample is a column vector with values from each channel (which means that a [(m x n) x ch] matrix is returned).
+/// \return A cv::Mat with sample vectors as columns.
+/// For a m x n sampling rectangle of a 3-channel image, this returns a cv::Mat with 3 rows, m*n columns and 1 channel.
 cv::Mat extractTrainingSamples(const cv::Mat& source_image, const cv::Rect& sampling_rectangle);
 
 /// \brief Draw a rectangle on an image
