@@ -6,6 +6,12 @@
 
 // ------ Declarations for utility functions ------
 
+/// \brief Replace a ratio of old_samples with new_samples
+/// \param[in] old_samples Samples used in the current model.
+/// \param[in] new_samples New samples.
+/// \param[in] update_ratio The ratio of samples to replace on average.
+void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float update_ratio);
+
 /// \brief Extracts pixel features from an image.
 /// \param[in] input_image Assumed to be of type CV_8U.
 /// \return An image where each pixel is the feature vector for the corresponding pixel in the input.
@@ -17,12 +23,6 @@ cv::Mat extractFeatures(const cv::Mat& frame);
 /// \param[in] use_otsu Option whether to use Otsu's method or not
 /// \return The segmented image
 cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bool use_otsu);
-
-/// \brief Replace a ratio of old_samples with new_samples
-/// \param[in] old_samples Samples used in the current model.
-/// \param[in] new_samples New samples.
-/// \param[in] update_ratio The ratio of samples to replace on average.
-void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float update_ratio);
 
 /// \brief Creates a cv::Rect with size and position scaled relative to some input img_size
 /// \param[in] img_size The size of the image you want to sample from
@@ -137,6 +137,23 @@ void lab11()
 }
 
 
+void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float update_ratio)
+{
+  // Draw uniformly distributed random numbers
+  cv::Mat rand_num = cv::Mat::zeros(1,new_samples.cols,CV_32FC1);
+  cv::randu(rand_num,0.,1.);
+
+  // Update samples
+  for (int i = 0; i<rand_num.cols; i++)
+  {
+    if (rand_num.at<float>(0,i) < update_ratio)
+    {
+      new_samples.col(i).copyTo(old_samples.col(i));
+    }
+  }
+}
+
+
 cv::Mat extractFeatures(const cv::Mat& frame)
 {
   cv::Mat feature_image = frame.clone();
@@ -157,23 +174,6 @@ cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bo
   cv::morphologyEx(segmented_image, segmented_image, cv::MORPH_CLOSE, cv::getStructuringElement(cv::MORPH_RECT, {5,5}));
 
   return segmented_image;
-}
-
-
-void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float update_ratio)
-{
-  // Draw uniformly distributed random numbers
-  cv::Mat rand_num = cv::Mat::zeros(1,new_samples.cols,CV_32FC1);
-  cv::randu(rand_num,0.,1.);
-
-  // Update samples
-  for (int i = 0; i<rand_num.cols; i++)
-  {
-    if (rand_num.at<float>(0,i) < update_ratio)
-    {
-      new_samples.col(i).copyTo(old_samples.col(i));
-    }
-  }
 }
 
 
