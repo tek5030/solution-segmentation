@@ -17,6 +17,8 @@ void MultivariateNormalModel::performTraining(const cv::Mat& samples)
 
 cv::Mat MultivariateNormalModel::computeMahalanobisDistances(const cv::Mat& image) const
 {
+  // We need to represent the distances in uint8 because of Otsu's method.
+  // We get a pretty good representation by multiplying the distances with 1000.
   constexpr double dist_to_uint8_scale = 1000.0;
 
   cv::Mat mahalanobis_img(image.size(), CV_8UC1);
