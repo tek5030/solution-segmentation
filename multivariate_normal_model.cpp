@@ -21,17 +21,21 @@ cv::Mat MultivariateNormalModel::computeMahalanobisDistances(const cv::Mat& imag
   // We get a pretty good representation by multiplying the distances with 1000.
   constexpr double dist_to_uint8_scale = 1000.0;
 
-  cv::Mat mahalanobis_img(image.size(), CV_8UC1);
+  // Convert to double precision and reshape to feature vector columns.
+  cv::Mat samples_in_double_precision;
+  image.convertTo(samples_in_double_precision, CV_64F);
+  samples_in_double_precision = samples_in_double_precision.reshape(1, samples_in_double_precision.total()).t();
 
-  using Pixel = cv::Vec<uint8_t, 3>;
-  image.forEach<Pixel>(
-      [&](const Pixel& pixel, const int* pos)
-      {
-        const cv::Vec3d double_pixel(pixel(0), pixel(1), pixel(2));
-        const double mahalanobis = cv::Mahalanobis(double_pixel, mean_, inverse_covariance_);
-        mahalanobis_img.at<uint8_t>(pos[0], pos[1]) = static_cast<uint8_t>(dist_to_uint8_scale * mahalanobis);
-      });
+  cv::Mat mahalanobis_img(image.size(), CV_64FC1);
 
+  for (int i=0; i < samples_in_double_precision.cols; ++i)
+  {
+    cv::Mat sample = samples_in_double_precision.col(i);
+    mahalanobis_img.at<double>(i) = cv::Mahalanobis(sample , mean_, inverse_covariance_);
+  }
+
+  // Scale and convert to uint8.
+  mahalanobis_img.convertTo(mahalanobis_img, CV_8U, dist_to_uint8_scale);
   return mahalanobis_img;
 }
 
