@@ -21,7 +21,7 @@ cv::Mat MultivariateNormalModel::computeMahalanobisDistances(const cv::Mat& imag
   // We get a pretty good representation by multiplying the distances with 1000.
   constexpr double dist_to_uint8_scale = 1000.0;
 
-  // Convert to double precision and reshape to feature vector columns.
+  // Convert to double precision and reshape to feature vector rows.
   cv::Mat samples_in_double_precision;
   image.convertTo(samples_in_double_precision, CV_64F);
   samples_in_double_precision = samples_in_double_precision.reshape(1, samples_in_double_precision.total());
