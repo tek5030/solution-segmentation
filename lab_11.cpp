@@ -33,7 +33,7 @@ cv::Rect getSamplingRectangle(const cv::Size& img_size);
 /// \param[in] source_image
 /// \param[in] sampling_rectangle
 /// \return A cv::Mat with sample vectors as columns.
-/// For a m x n sampling rectangle of a 3-channel image, this returns a cv::Mat with 3 rows, m*n columns and 1 channel.
+/// For a m x n sampling rectangle of a k-channel image, this returns a cv::Mat with k rows, m*n columns and 1 channel.
 cv::Mat extractTrainingSamples(const cv::Mat& source_image, const cv::Rect& sampling_rectangle);
 
 /// \brief Draw a rectangle on an image
@@ -44,6 +44,7 @@ void drawSamplingRectangle(cv::Mat& image, const cv::Rect& sampling_rectangle);
 
 void lab11()
 {
+  // Change to video file if you want to use that instead.
   constexpr int device_id = 0;
   cv::VideoCapture cap{device_id};
 
@@ -51,30 +52,35 @@ void lab11()
   {
     throw std::runtime_error("Could not open camera " + std::to_string(device_id));
   }
+
+  // Construct sampling region based on image dimensions.
   cv::Mat frame;
   cap >> frame;
   cv::Rect sampling_rectangle = getSamplingRectangle(frame.size());
 
-  const std::string win_name_input{"Lab 11: Segmentation - Input"};
-  cv::namedWindow(win_name_input, cv::WINDOW_NORMAL);
-
-  const std::string win_name_result{"Lab 11: Segmentation - Mahalanobis distance"};
-  cv::namedWindow(win_name_result, cv::WINDOW_NORMAL);
-
+  // Set up parameters.
   const int max_threshold{255};
   int current_threshold{30};
   bool use_otsu{false};
   bool use_adaptive_model{false};
   float adaptive_update_ratio{0.1f};
 
+  // Create windows.
+  const std::string win_name_input{"Lab 11: Segmentation - Input"};
+  cv::namedWindow(win_name_input, cv::WINDOW_NORMAL);
+  const std::string win_name_result{"Lab 11: Segmentation - Mahalanobis distance"};
+  cv::namedWindow(win_name_result, cv::WINDOW_NORMAL);
+
+  // Add a trackbar for setting the threshold.
   const std::string threshold_trackbar_name{"Threshold"};
   cv::createTrackbar(threshold_trackbar_name, win_name_input, &current_threshold, max_threshold);
 
+  // The main loop in the program.
   std::shared_ptr<MultivariateNormalModel> model;
   cv::Mat current_samples;
-
   while (true)
   {
+    // Read an image frame.
     cap >> frame;
     if (frame.empty())
     {
@@ -189,7 +195,7 @@ cv::Rect getSamplingRectangle(const cv::Size& img_size)
   const cv::Rect sampling_rectangle(top_left_x, top_left_y, width, height);
   const cv::Rect entire_image(0,0,img_size.width,img_size.height);
 
-  // This operation ensures that the boundaries of the returned sampling rectangel are within the image dimensions,
+  // This operation ensures that the boundaries of the returned sampling rectangle are within the image dimensions,
   // just in case the chosen width or height is to large.
   return (sampling_rectangle & entire_image );
 }
@@ -198,7 +204,7 @@ cv::Rect getSamplingRectangle(const cv::Size& img_size)
 cv::Mat extractTrainingSamples(const cv::Mat& source_image, const cv::Rect& sampling_rectangle)
 {
   cv::Mat patch = source_image(sampling_rectangle).clone();
-  cv::Mat samples = patch.reshape(1, patch.total()).t();
+  cv::Mat samples = patch.reshape(1, patch.total());
   return samples;
 }
 
