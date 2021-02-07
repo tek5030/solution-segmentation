@@ -204,7 +204,7 @@ cv::Rect getSamplingRectangle(const cv::Size& img_size)
 cv::Mat extractTrainingSamples(const cv::Mat& source_image, const cv::Rect& sampling_rectangle)
 {
   cv::Mat patch = source_image(sampling_rectangle).clone();
-  cv::Mat samples = patch.reshape(1, patch.total());
+  cv::Mat samples = patch.reshape(1, patch.total()).t();
   return samples;
 }
 
