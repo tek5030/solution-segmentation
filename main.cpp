@@ -1,16 +1,15 @@
-#include "lab_11.h"
+#include "lab-segmentation.h"
 #include <iostream>
 
 int main()
 {
   try
   {
-    lab11();
+    runSegmentationLab();
   }
   catch (const std::exception& e)
   {
-    std::cerr << "Caught exception:" << std::endl
-              << e.what() << std::endl;
+    std::cerr << "Caught exception:\n" << e.what() << std::endl;
   }
   catch (...)
   {

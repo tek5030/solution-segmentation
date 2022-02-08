@@ -14,10 +14,10 @@ endif (MSVC)
 find_package(OpenCV 4 REQUIRED)
 
 add_executable(${PROJECT_NAME}
-  lab_11.h
-  lab_11.cpp
-  multivariate_normal_model.h
-  multivariate_normal_model.cpp
+  lab-segmentation.h
+  lab-segmentation.cpp
+  multivariate-normal-model.h
+  multivariate-normal-model.cpp
   main.cpp
   )
 
