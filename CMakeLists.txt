@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5.1)
 
-project(lab_11_segmentation)
+project(solution_segmentation)
 
 # Compiler flags
 if (MSVC)
@@ -14,10 +14,12 @@ endif (MSVC)
 find_package(OpenCV 4 REQUIRED)
 
 add_executable(${PROJECT_NAME}
-  lab_11.h
-  lab_11.cpp
-  multivariate_normal_model.h
-  multivariate_normal_model.cpp
+  common-lab-utils.h
+  common-lab-utils.cpp
+  lab-segmentation.h
+  lab-segmentation.cpp
+  multivariate-normal-model.h
+  multivariate-normal-model.cpp
   main.cpp
   )
 
@@ -28,5 +30,5 @@ target_link_libraries(${PROJECT_NAME}
 target_compile_options(${PROJECT_NAME} PRIVATE ${compiler_options})
 set_target_properties(${PROJECT_NAME} PROPERTIES
   CXX_STANDARD_REQUIRED ON
-  CXX_STANDARD 14
+  CXX_STANDARD 17
   )

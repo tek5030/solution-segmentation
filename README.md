@@ -1,4 +1,4 @@
-# Lab 11: Segmentation, proposed solution
-This is our proposed solution for lab 11 in TEK5030.
+# Lab: Real-time learning and segmentation
+This is our proposed solution for the TEK5030 segmentation lab.
 
-Please see the lab guide at https://github.com/tek5030/lab_11.
+Please see the lab guide at https://github.com/tek5030/lab-segmentation.
