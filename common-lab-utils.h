@@ -6,15 +6,13 @@
 class SegmentationLabGUI
 {
 public:
-  SegmentationLabGUI(int initial_thresh_val, int max_thresh_val);
+  SegmentationLabGUI(int initial_thresh_val, double max_thresh_val);
 
   ~SegmentationLabGUI();
 
   void setThreshold(int thresh);
 
   int getThreshold() const;
-
-  int& getThreshold();
 
   void showFrame(const cv::Mat& frame_img) const;
 

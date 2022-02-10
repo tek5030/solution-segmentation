@@ -19,7 +19,7 @@ void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float updat
 /// \param[in] use_otsu Option whether to use Otsu's method or not
 /// \param[in] max_dist_value The maximum distance value to represent after rescaling.
 /// \return The segmented image
-cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bool use_otsu, int max_dist_value);
+cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bool use_otsu, double max_dist_value);
 
 /// \brief Extracts pixel features from an image.
 /// \param[in] input_image Assumed to be of type CV_8U.
@@ -33,7 +33,7 @@ void runSegmentationLab()
   bool use_otsu{false};
   bool use_adaptive_model{false};
   float adaptive_update_ratio{0.1f};
-  const int max_distance = 20;
+  const double max_distance = 20.;
   int initial_thresh_val{8};
   using ModelType = MultivariateNormalModel;
 
@@ -93,7 +93,9 @@ void runSegmentationLab()
     cv::Mat mahalanobis_img = model.computeMahalanobisDistances(feature_image);
 
     // Segment out the areas of the image that fits well enough.
-    cv::Mat segmented = performSegmentation(mahalanobis_img, gui.getThreshold(), use_otsu, max_distance);
+    int current_threshold = gui.getThreshold();
+    cv::Mat segmented = performSegmentation(mahalanobis_img, current_threshold, use_otsu, max_distance);
+    gui.setThreshold(current_threshold);
 
     // Set segmented area to green.
     //frame.setTo(frame * cv::Scalar{0, 1, 0}, segmented > 0);
@@ -103,7 +105,7 @@ void runSegmentationLab()
     drawSamplingRectangle(frame, sampling_rectangle);
 
     gui.showFrame(frame);
-    gui.showMahalanobis(mahalanobis_img);
+    gui.showMahalanobis(mahalanobis_img / max_distance);
 
     // Update the GUI and wait a short time for input from the keyboard/
     const auto key = SegmentationLabGUI::waitKey(1);
@@ -143,7 +145,7 @@ cv::Mat extractFeatures(const cv::Mat& frame)
 {
   // Convert to float32
   cv::Mat feature_image;
-  frame.convertTo(feature_image, CV_32F, 1./255.);
+  frame.convertTo(feature_image, CV_32F, 1. / 255.);
 
   // Choose a colour format:
   cv::cvtColor(feature_image, feature_image, cv::COLOR_BGR2YCrCb);
@@ -152,10 +154,15 @@ cv::Mat extractFeatures(const cv::Mat& frame)
 }
 
 
-cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bool use_otsu, int max_dist_value)
+cv::Mat performSegmentation(
+    const cv::Mat& input_image,
+    int& threshold_value,
+    const bool use_otsu,
+    const double max_dist_value
+)
 {
   // We need to represent the distances in uint16 because of OpenCV's implementation of Otsu's method.
-  const uint16_t scale = std::numeric_limits<uint16_t>::max() / max_dist_value;
+  const double scale = std::numeric_limits<uint16_t>::max() / max_dist_value;
 
   cv::Mat distances_scaled;
   input_image.convertTo(distances_scaled, CV_16UC1, scale);
@@ -165,23 +172,24 @@ cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bo
   { thresh_type |= cv::THRESH_OTSU; }
 
   cv::Mat segmented_image;
-  const double scaled_threshold = cv::threshold(distances_scaled, segmented_image, threshold_value * scale, 255, thresh_type);
+  const double scaled_threshold = cv::threshold(distances_scaled, segmented_image, threshold_value * scale, 255,
+                                                thresh_type);
   threshold_value = static_cast<int>(std::round(scaled_threshold / scale));
 
   // Perform cleanup using morphological operations.
-  cv::Mat structuring_element = cv::getStructuringElement(cv::MORPH_RECT, {5,5});
-  cv::morphologyEx(segmented_image, segmented_image, cv::MORPH_OPEN,  structuring_element);
+  cv::Mat structuring_element = cv::getStructuringElement(cv::MORPH_RECT, {5, 5});
+  cv::morphologyEx(segmented_image, segmented_image, cv::MORPH_OPEN, structuring_element);
   cv::morphologyEx(segmented_image, segmented_image, cv::MORPH_CLOSE, structuring_element);
 
   return segmented_image;
 }
 
 
-void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float update_ratio)
+void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, const float update_ratio)
 {
   // Draw uniformly distributed random numbers
-  cv::Mat rand_num = cv::Mat::zeros(new_samples.size(),CV_32FC1);
-  cv::randu(rand_num,0.,1.);
+  cv::Mat rand_num = cv::Mat::zeros(new_samples.size(), CV_32FC1);
+  cv::randu(rand_num, 0., 1.);
 
   // Update samples
   new_samples.copyTo(old_samples, rand_num < update_ratio);
