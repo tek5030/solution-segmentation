@@ -1,39 +1,11 @@
 #include "lab-segmentation.h"
+
+#include "common-lab-utils.h"
 #include "multivariate-normal-model.h"
-#include "opencv2/highgui.hpp"
 #include "opencv2/imgproc.hpp"
 #include <iostream>
 
 // ------ Declarations for utility functions ------
-
-/// \brief Creates a cv::Rect with size and position scaled relative to some input img_size
-/// \param[in] img_size The size of the image you want to sample from
-/// \return The computed cv::Rect
-cv::Rect getSamplingRectangle(const cv::Size& img_size, const cv::Size& rect_size = {100, 80});
-
-/// \brief Extracts pixel features from an image.
-/// \param[in] input_image Assumed to be of type CV_8U.
-/// \return An image where each pixel is the feature vector for the corresponding pixel in the input.
-cv::Mat extractFeatures(const cv::Mat& frame);
-
-/// \brief Extract training samples from a rectangle within an image.
-/// \param[in] source_image
-/// \param[in] sampling_rectangle
-/// \return A cv::Mat with sample vectors as columns.
-/// For a m x n sampling rectangle of a k-channel image, this returns a cv::Mat with k rows, m*n columns and 1 channel.
-cv::Mat extractTrainingSamples(const cv::Mat& source_image, const cv::Rect& sampling_rectangle);
-
-/// \brief Returns a binary image (values 0 or 255) which is the result of segmenting the input.
-/// \param[in] input_image Assumed to be of type CV_8U.
-/// \param[in/out] threshold_value Assumed to be a number between 0 and 255. Is updated when Otsu's is used.
-/// \param[in] use_otsu Option whether to use Otsu's method or not
-/// \return The segmented image
-cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bool use_otsu, int max_dist_value);
-
-/// \brief Draw a rectangle on an image
-/// \param[in, out] image The image will be modified, a rectangle will be drawn on top of it.
-/// \param[in] sampling_rectangle The rectangle which will be drawn.
-void drawSamplingRectangle(cv::Mat& image, const cv::Rect& sampling_rectangle);
 
 /// \brief Replace a ratio of old_samples with new_samples
 /// \param[in] old_samples Samples used in the current model.
@@ -41,24 +13,32 @@ void drawSamplingRectangle(cv::Mat& image, const cv::Rect& sampling_rectangle);
 /// \param[in] update_ratio The ratio of samples to replace on average.
 void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float update_ratio);
 
+/// \brief Returns a binary image (values 0 or 255) which is the result of segmenting the input.
+/// \param[in] input_image Assumed to be of type CV_8U.
+/// \param[in/out] threshold_value Assumed to be a number between 0 and 255. Is updated when Otsu's is used.
+/// \param[in] use_otsu Option whether to use Otsu's method or not
+/// \param[in] max_dist_value The maximum distance value to represent after rescaling.
+/// \return The segmented image
+cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bool use_otsu, int max_dist_value);
+
+/// \brief Extracts pixel features from an image.
+/// \param[in] input_image Assumed to be of type CV_8U.
+/// \return An image where each pixel is the feature vector for the corresponding pixel in the input.
+cv::Mat extractFeatures(const cv::Mat& frame);
+
 
 void runSegmentationLab()
 {
   // Set up parameters.
   bool use_otsu{false};
   bool use_adaptive_model{false};
-  const int max_std_dev = 20;
-  int current_threshold{8};
   float adaptive_update_ratio{0.1f};
+  const int max_distance = 20;
+  int initial_thresh_val{8};
+  using ModelType = MultivariateNormalModel;
 
-  // Create windows and gui components
-  const std::string win_name_input{"Segmentation - Input"};
-  const std::string win_name_result{"Segmentation - Mahalanobis distance"};
-  const std::string threshold_trackbar_name{"Threshold"};
-  cv::namedWindow(win_name_input, cv::WINDOW_NORMAL);
-  cv::namedWindow(win_name_result, cv::WINDOW_NORMAL);
-  cv::createTrackbar(threshold_trackbar_name, win_name_input, &current_threshold, max_std_dev);
-  // https://github.com/opencv/opencv/issues/20408
+  // Set up a simple gui for the lab (based on OpenCV highgui) and run the main loop.
+  SegmentationLabGUI gui(initial_thresh_val, max_distance);
 
   // Connect to the camera.
   // Change to video file if you want to use that instead.
@@ -86,7 +66,6 @@ void runSegmentationLab()
   cv::Mat feature_image = extractFeatures(frame);
   cv::Mat current_samples = extractTrainingSamples(feature_image, sampling_rectangle);
 
-  using ModelType = MultivariateNormalModel;
   ModelType model(current_samples);
 
   // The main loop in the program.
@@ -114,23 +93,20 @@ void runSegmentationLab()
     cv::Mat mahalanobis_img = model.computeMahalanobisDistances(feature_image);
 
     // Segment out the areas of the image that fits well enough.
-    cv::Mat segmented = performSegmentation(mahalanobis_img, current_threshold, use_otsu, max_std_dev);
+    cv::Mat segmented = performSegmentation(mahalanobis_img, gui.getThreshold(), use_otsu, max_distance);
 
     // Set segmented area to green.
-    frame.setTo(cv::Scalar{0, 255, 0}, segmented > 0);
+    //frame.setTo(frame * cv::Scalar{0, 1, 0}, segmented > 0);
+    cv::bitwise_and(frame, cv::Scalar{0, 255, 0}, frame, segmented > 0);
 
     // Draw current frame.
     drawSamplingRectangle(frame, sampling_rectangle);
 
-    cv::Mat viz;
-    cv::normalize(mahalanobis_img, viz, 1.0, 0.0, cv::NORM_MINMAX);
-
-    cv::imshow(win_name_input, frame);
-    cv::imshow(win_name_result, viz);
-    cv::setTrackbarPos(threshold_trackbar_name, win_name_input, current_threshold);
+    gui.showFrame(frame);
+    gui.showMahalanobis(mahalanobis_img);
 
     // Update the GUI and wait a short time for input from the keyboard/
-    const auto key = static_cast<char>(cv::waitKey(1));
+    const auto key = SegmentationLabGUI::waitKey(1);
 
     // React to commands from the keyboard
     if (key == 'q')
@@ -160,25 +136,6 @@ void runSegmentationLab()
     }
   }
   cap.release();
-  cv::destroyAllWindows();
-}
-
-
-cv::Rect getSamplingRectangle(const cv::Size& img_size, const cv::Size& rect_size)
-{
-  int center_x = img_size.width/2;
-  int center_y = 4*img_size.height/5;
-  int width = rect_size.width;
-  int height = rect_size.height;
-  int top_left_x = center_x - width/2;
-  int top_left_y = center_y - height/2;
-
-  const cv::Rect sampling_rectangle(top_left_x, top_left_y, width, height);
-  const cv::Rect entire_image(0,0,img_size.width,img_size.height);
-
-  // This operation ensures that the boundaries of the returned sampling rectangle are within the image dimensions,
-  // just in case the chosen width or height is too large.
-  return (sampling_rectangle & entire_image );
 }
 
 
@@ -192,14 +149,6 @@ cv::Mat extractFeatures(const cv::Mat& frame)
   cv::cvtColor(feature_image, feature_image, cv::COLOR_BGR2YCrCb);
 
   return feature_image;
-}
-
-
-cv::Mat extractTrainingSamples(const cv::Mat& source_image, const cv::Rect& sampling_rectangle)
-{
-  cv::Mat patch = source_image(sampling_rectangle).clone();
-  cv::Mat samples = patch.reshape(1, static_cast<int>(patch.total()));
-  return samples;
 }
 
 
@@ -225,14 +174,6 @@ cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bo
   cv::morphologyEx(segmented_image, segmented_image, cv::MORPH_CLOSE, structuring_element);
 
   return segmented_image;
-}
-
-
-void drawSamplingRectangle(cv::Mat& image, const cv::Rect& sampling_rectangle)
-{
-  const cv::Scalar colour{0, 0, 255};
-  constexpr int thickness = 3;
-  cv::rectangle(image, sampling_rectangle, colour, thickness);
 }
 
 

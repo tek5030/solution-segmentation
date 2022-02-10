@@ -14,6 +14,8 @@ endif (MSVC)
 find_package(OpenCV 4 REQUIRED)
 
 add_executable(${PROJECT_NAME}
+  common-lab-utils.h
+  common-lab-utils.cpp
   lab-segmentation.h
   lab-segmentation.cpp
   multivariate-normal-model.h
