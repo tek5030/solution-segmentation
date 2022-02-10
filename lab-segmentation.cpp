@@ -159,11 +159,11 @@ std::pair<cv::Mat, int> performSegmentation(
     const float max_dist_value
 )
 {
-  // We need to represent the distances in uint16 because of OpenCV's implementation of Otsu's method.
-  const double scale = std::numeric_limits<uint16_t>::max() / max_dist_value;
+  // We need to represent the distances in uint8 because of OpenCV's implementation of Otsu's method.
+  const double scale = std::numeric_limits<uint8_t>::max() / max_dist_value;
 
   cv::Mat distances_scaled;
-  input_image.convertTo(distances_scaled, CV_16UC1, scale);
+  input_image.convertTo(distances_scaled, CV_8UC1, scale);
 
   int thresh_type = cv::THRESH_BINARY_INV;
   if (use_otsu)

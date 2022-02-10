@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5.1)
 
-project(lab_segmentation)
+project(solution_segmentation)
 
 # Compiler flags
 if (MSVC)
