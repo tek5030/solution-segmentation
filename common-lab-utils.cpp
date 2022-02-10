@@ -1,7 +1,7 @@
 #include "common-lab-utils.h"
 #include "opencv2/imgproc.hpp"
 
-SegmentationLabGUI::SegmentationLabGUI(const int initial_thresh_val, const double max_thresh_val)
+SegmentationLabGUI::SegmentationLabGUI(const int initial_thresh_val, const float max_thresh_val)
     : win_name_input_{"Segmentation - Input frame"}
     , win_name_result_{"Segmentation - Mahalanobis distances"}
     , threshold_trackbar_name_{"Threshold"}
@@ -11,13 +11,8 @@ SegmentationLabGUI::SegmentationLabGUI(const int initial_thresh_val, const doubl
   cv::namedWindow(win_name_result_, cv::WINDOW_NORMAL);
   cv::createTrackbar(threshold_trackbar_name_,
                      win_name_input_,
-                     nullptr,
-                     static_cast<int>(std::round(max_thresh_val)),
-                     [](auto val, auto ptr)
-                     {
-                       reinterpret_cast<SegmentationLabGUI*>(ptr)->setThreshold(val);
-                     }, this);
-  setThreshold(thresh_val_);
+                     &thresh_val_,
+                     static_cast<int>(std::round(max_thresh_val)));
 }
 
 SegmentationLabGUI::~SegmentationLabGUI()
@@ -45,8 +40,8 @@ void SegmentationLabGUI::showMahalanobis(const cv::Mat& mahalanobis_img) const
   cv::imshow(win_name_result_, mahalanobis_img);
 }
 
-char SegmentationLabGUI::waitKey(const int delay)
-{ return static_cast<char>(cv::waitKey(delay)); }
+int8_t SegmentationLabGUI::waitKey(const int delay)
+{ return static_cast<int8_t>(cv::waitKey(delay)); }
 
 cv::Rect getSamplingRectangle(const cv::Size& img_size, const cv::Size& rect_size)
 {

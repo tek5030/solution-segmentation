@@ -18,8 +18,8 @@ void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, float updat
 /// \param[in/out] threshold_value Assumed to be a number between 0 and 255. Is updated when Otsu's is used.
 /// \param[in] use_otsu Option whether to use Otsu's method or not
 /// \param[in] max_dist_value The maximum distance value to represent after rescaling.
-/// \return The segmented image
-cv::Mat performSegmentation(const cv::Mat& input_image, int& threshold_value, bool use_otsu, double max_dist_value);
+/// \return The segmented image and the current threshold value.
+std::pair<cv::Mat, int> performSegmentation(const cv::Mat& input_image, int threshold_value, bool use_otsu, float max_dist_value);
 
 /// \brief Extracts pixel features from an image.
 /// \param[in] input_image Assumed to be of type CV_8U.
@@ -32,9 +32,9 @@ void runSegmentationLab()
   // Set up parameters.
   bool use_otsu{false};
   bool use_adaptive_model{false};
-  float adaptive_update_ratio{0.1f};
-  const double max_distance = 20.;
-  int initial_thresh_val{8};
+  const float adaptive_update_ratio{0.1f};
+  const float max_distance = 20.;
+  const int initial_thresh_val{8};
   using ModelType = MultivariateNormalModel;
 
   // Set up a simple gui for the lab (based on OpenCV highgui) and run the main loop.
@@ -44,6 +44,8 @@ void runSegmentationLab()
   // Change to video file if you want to use that instead.
   constexpr int video_source = 0;
   cv::VideoCapture cap{video_source};
+  cap.set(cv::CAP_PROP_FRAME_WIDTH, 640);
+  cap.set(cv::CAP_PROP_FRAME_HEIGHT, 480);
 
   if (!cap.isOpened())
   {
@@ -93,12 +95,10 @@ void runSegmentationLab()
     cv::Mat mahalanobis_img = model.computeMahalanobisDistances(feature_image);
 
     // Segment out the areas of the image that fits well enough.
-    int current_threshold = gui.getThreshold();
-    cv::Mat segmented = performSegmentation(mahalanobis_img, current_threshold, use_otsu, max_distance);
-    gui.setThreshold(current_threshold);
+    const auto[segmented, new_threshold] = performSegmentation(mahalanobis_img, gui.getThreshold(), use_otsu, max_distance);
+    gui.setThreshold(new_threshold);
 
     // Set segmented area to green.
-    //frame.setTo(frame * cv::Scalar{0, 1, 0}, segmented > 0);
     cv::bitwise_and(frame, cv::Scalar{0, 255, 0}, frame, segmented > 0);
 
     // Draw current frame.
@@ -152,11 +152,11 @@ void updateSamples(cv::Mat& old_samples, const cv::Mat& new_samples, const float
 }
 
 
-cv::Mat performSegmentation(
+std::pair<cv::Mat, int> performSegmentation(
     const cv::Mat& input_image,
-    int& threshold_value,
+    const int threshold_value,
     const bool use_otsu,
-    const double max_dist_value
+    const float max_dist_value
 )
 {
   // We need to represent the distances in uint16 because of OpenCV's implementation of Otsu's method.
@@ -172,14 +172,14 @@ cv::Mat performSegmentation(
   cv::Mat segmented_image;
   const double scaled_threshold = cv::threshold(distances_scaled, segmented_image, threshold_value * scale, 255,
                                                 thresh_type);
-  threshold_value = static_cast<int>(std::round(scaled_threshold / scale));
+  const auto current_threshold = static_cast<int>(std::round(scaled_threshold / scale));
 
   // Perform cleanup using morphological operations.
   cv::Mat structuring_element = cv::getStructuringElement(cv::MORPH_RECT, {5, 5});
   cv::morphologyEx(segmented_image, segmented_image, cv::MORPH_OPEN, structuring_element);
   cv::morphologyEx(segmented_image, segmented_image, cv::MORPH_CLOSE, structuring_element);
 
-  return segmented_image;
+  return {segmented_image, current_threshold};
 }
 
 

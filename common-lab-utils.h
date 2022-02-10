@@ -3,22 +3,34 @@
 #include "opencv2/highgui.hpp"
 #include <string>
 
+/// \brief A simple GUI for this lab for visualising results and choosing a threshold.
 class SegmentationLabGUI
 {
 public:
-  SegmentationLabGUI(int initial_thresh_val, double max_thresh_val);
+  /// \brief Constructs the GUI.
+  /// \param initial_thresh_val  Initial value for the threshold.
+  /// \param max_thresh_val Maximum value for the threshold slider.
+  SegmentationLabGUI(int initial_thresh_val, float max_thresh_val);
 
+  /// Destroys the GUI
   ~SegmentationLabGUI();
 
+  /// Setter for the threshold value that also updates the slider
   void setThreshold(int thresh);
 
+  /// The threshold value
   int getThreshold() const;
 
+  /// Show an image in the "Segmented frame" window
   void showFrame(const cv::Mat& frame_img) const;
 
+  /// Show an image in the "Mahalanobis image" window
   void showMahalanobis(const cv::Mat& mahalanobis_img) const;
 
-  static char waitKey(int delay);
+  /// \brief Wait for keypress and update the GUI
+  /// \param delay how long to wait for keypress
+  /// \return keycode of pressed key, or -1
+  static int8_t waitKey(int delay);
 
 private:
   std::string win_name_input_;
