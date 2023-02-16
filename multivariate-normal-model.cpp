@@ -11,6 +11,12 @@ void MultivariateNormalModel::performTraining(const cv::Mat& samples)
 {
   cv::calcCovarMatrix(samples, covariance_, mean_, cv::COVAR_NORMAL | cv::COVAR_ROWS, CV_32F);
   covariance_ /= (samples.rows - 1);
+
+if (cv::abs(cv::determinant(covariance_)) < 1e-14)
+{
+  covariance_ += cv::Mat::eye(covariance_.size(), CV_32F)*1e-3;
+}
+
   cv::invert(covariance_, inverse_covariance_, cv::DECOMP_SVD);
 }
 
