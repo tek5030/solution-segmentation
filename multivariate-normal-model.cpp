@@ -9,7 +9,8 @@ MultivariateNormalModel::MultivariateNormalModel(const cv::Mat& samples)
 
 void MultivariateNormalModel::performTraining(const cv::Mat& samples)
 {
-  cv::calcCovarMatrix(samples, covariance_, mean_, cv::COVAR_NORMAL | cv::COVAR_ROWS | cv::COVAR_SCALE, CV_32F);
+  cv::calcCovarMatrix(samples, covariance_, mean_, cv::COVAR_NORMAL | cv::COVAR_ROWS, CV_32F);
+  covariance_ /= (samples.rows - 1);
 
   // We are going to compute the inverse of the estimated covariance,
   // so we must ensure that the matrix is indeed invertible (not singular).
